@@ -1,15 +1,20 @@
 // Copyright Ali El Saleh, 2019
 
 #include "FPCharacter.h"
+#include "FootstepData.h"
 
 #include "Components/InputComponent.h"
 #include "Components/CapsuleComponent.h"
+
 #include "Camera/CameraComponent.h"
+
 #include "GameFramework/Controller.h"
 #include "GameFramework/GameUserSettings.h"
-#include "Kismet/GameplayStatics.h"
-#include "Sound/SoundBase.h"
 #include "GameFramework/InputSettings.h"
+
+#include "Kismet/GameplayStatics.h"
+
+#include "Sound/SoundBase.h"
 
 AFPCharacter::AFPCharacter()
 {
@@ -26,6 +31,7 @@ AFPCharacter::AFPCharacter()
 	GetCharacterMovement()->JumpZVelocity = 300.0f;
 	GetCharacterMovement()->AirControl = 0.1f;
 	GetCapsuleComponent()->bReturnMaterialOnMove = true;
+	
 	AutoPossessPlayer = EAutoReceiveInput::Player0;
 	AutoReceiveInput = EAutoReceiveInput::Player0;
 
@@ -94,7 +100,7 @@ void AFPCharacter::Jump()
 		Super::Jump();
 
 		// Play jump camera shake
-		UGameplayStatics::GetPlayerController(this, 0)->ClientPlayCameraShake(CameraShakes.JumpShake);
+		PlayerController->ClientPlayCameraShake(CameraShakes.JumpShake);
 	}
 }
 
@@ -105,11 +111,18 @@ void AFPCharacter::Landed(const FHitResult& Hit)
 		Super::Landed(Hit);
 
 		// Play jump camera shake
-		UGameplayStatics::GetPlayerController(this, 0)->ClientPlayCameraShake(CameraShakes.JumpShake, 3.0f);
+		PlayerController->ClientPlayCameraShake(CameraShakes.JumpShake, 3.0f);
 
 		if (FootstepSettings.bEnableFootsteps)
 			PlayFootstepSound();
 	}
+}
+
+void AFPCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	PlayerController = Cast<APlayerController>(NewController);
 }
 
 void AFPCharacter::StartCrouch()
@@ -244,19 +257,19 @@ bool AFPCharacter::IsBlockedInCrouchStance()
 }
 
 void AFPCharacter::UpdateCameraShake()
-{
-	if (UGameplayStatics::GetPlayerController(this, 0)->GetPawn()->IsA(AFPCharacter::StaticClass()))
+{	
+	if (PlayerController)
 	{
 		// Shake camera (Walking shake)
 		if (GetVelocity().Size() > 0 && CanJump())
-			UGameplayStatics::GetPlayerController(this, 0)->ClientPlayCameraShake(CameraShakes.WalkShake, 2.0f);
+			PlayerController->ClientPlayCameraShake(CameraShakes.WalkShake, 2.0f);
 		// Shake camera (breathing shake)
 		else
-			UGameplayStatics::GetPlayerController(this, 0)->ClientPlayCameraShake(CameraShakes.IdleShake, 1.0f);
+			PlayerController->ClientPlayCameraShake(CameraShakes.IdleShake, 1.0f);
 		
 		// Shake camera (Run shake)
 		if (GetVelocity().Size() > 0 && GetCharacterMovement()->MaxWalkSpeed >= Movement.RunSpeed && CanJump())
-			UGameplayStatics::GetPlayerController(this, 0)->ClientPlayCameraShake(CameraShakes.RunShake, 1.0f);
+			PlayerController->ClientPlayCameraShake(CameraShakes.RunShake, 1.0f);
 	}
 }
 

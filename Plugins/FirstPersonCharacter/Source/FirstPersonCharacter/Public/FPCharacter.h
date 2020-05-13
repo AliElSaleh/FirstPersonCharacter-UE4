@@ -3,13 +3,11 @@
 #pragma once
 
 #include "GameFramework/Character.h"
-#include "FootstepData.h"
+
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerInput.h"
-#include "FPCharacter.generated.h"
 
-// Forward declarations
-enum class ESlateVisibility : unsigned char;
+#include "FPCharacter.generated.h"
 
 USTRUCT()
 struct FCameraShakes
@@ -38,7 +36,7 @@ struct FFootstepSettings
 		float Stride = 160.0f;
 
 	UPROPERTY(EditInstanceOnly, Category = "Footstep", meta = (EditCondition = "bEnableFootsteps", ToolTip = "An array of footstep data assets to play depending on the material the character is moving on"))
-		TArray<UFootstepData*> Mappings;
+		TArray<class UFootstepData*> Mappings;
 };
 
 USTRUCT()
@@ -79,6 +77,7 @@ protected:
 	void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	void Jump() override;
 	void Landed(const FHitResult& Hit) override;
+	void PossessedBy(AController* NewController) override;
 	void StartCrouch();
 	void StopCrouching();
 	void SetupInputBindings();
@@ -107,7 +106,7 @@ protected:
 	UPROPERTY()
 		class UCameraComponent* CameraComponent;
 	
-	UPROPERTY(EditInstanceOnly, Category = "First Person Settings", meta = (ToolTip = "Enable this setting if you want to change the keys fpr specific action or axis mapping. Go to Project Settings -> Engine -> Input to update your inputs."))
+	UPROPERTY(EditInstanceOnly, Category = "First Person Settings", meta = (ToolTip = "Enable this setting if you want to change the keys for specific action or axis mappings. Go to Project Settings -> Engine -> Input to update your inputs."))
 		bool bUseCustomKeyMappings = false;
 
 	UPROPERTY(EditInstanceOnly, Category = "First Person Settings", meta = (ToolTip = "Adjust these movement settings to your liking"))
@@ -122,6 +121,8 @@ protected:
 	class UInputSettings* Input{};
 
 private:
+	APlayerController* PlayerController;
+	
 	// Footstep variables
 	FVector LastFootstepLocation;
 	FVector LastLocation;
