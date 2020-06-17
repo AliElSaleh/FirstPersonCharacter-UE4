@@ -1,4 +1,4 @@
-// Copyright Ali El Saleh, 2019
+// Copyright Ali El Saleh, 2020
 
 #pragma once
 
@@ -124,22 +124,25 @@ protected:
 	UFUNCTION()
 		void StopRunning();
 
-	UPROPERTY()
+	UPROPERTY(VisibleDefaultsOnly)
+        class USpringArmComponent* SpringArmComponent;
+	
+	UPROPERTY(VisibleDefaultsOnly)
 		class UCameraComponent* CameraComponent;
 	
 	UPROPERTY(EditInstanceOnly, Category = "First Person Settings", meta = (ToolTip = "Enable this setting if you want to change the keys for specific action or axis mappings. Go to Project Settings -> Engine -> Input to update your inputs."))
 		bool bUseCustomKeyMappings = false;
 
-	UPROPERTY(EditInstanceOnly, Category = "First Person Settings", meta = (ToolTip = "Adjust these camera settings to your liking"))
+	UPROPERTY(EditAnywhere, Category = "First Person Settings", meta = (ToolTip = "Adjust these camera settings to your liking"))
 		FFirstPersonCameraSettings Camera;
 	
-	UPROPERTY(EditInstanceOnly, Category = "First Person Settings", meta = (ToolTip = "Adjust these movement settings to your liking"))
+	UPROPERTY(EditAnywhere, Category = "First Person Settings", meta = (ToolTip = "Adjust these movement settings to your liking"))
 		FFirstPersonMovementSettings Movement;
 
-	UPROPERTY(EditInstanceOnly, Category = "First Person Settings", meta = (ToolTip = "Adjust these footstep settings to your liking"))
+	UPROPERTY(EditAnywhere, Category = "First Person Settings", meta = (ToolTip = "Adjust these footstep settings to your liking"))
 		FFootstepSettings FootstepSettings;
 
-	UPROPERTY(EditInstanceOnly, Category = "First Person Settings", meta = (ToolTip = "Add one of your custom camera shakes to the corresponding slot"))
+	UPROPERTY(EditAnywhere, Category = "First Person Settings", meta = (ToolTip = "Add one of your custom camera shakes to the corresponding slot"))
 		FCameraShakes CameraShakes;
 
 	class UInputSettings* Input{};

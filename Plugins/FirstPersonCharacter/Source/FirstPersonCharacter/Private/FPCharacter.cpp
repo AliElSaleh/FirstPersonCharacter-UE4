@@ -1,4 +1,4 @@
-// Copyright Ali El Saleh, 2019
+// Copyright Ali El Saleh, 2020
 
 #include "FPCharacter.h"
 #include "FootstepData.h"
@@ -11,6 +11,7 @@
 #include "GameFramework/Controller.h"
 #include "GameFramework/GameUserSettings.h"
 #include "GameFramework/InputSettings.h"
+#include "GameFramework/SpringArmComponent.h"
 
 #include "Kismet/GameplayStatics.h"
 
@@ -20,11 +21,14 @@ AFPCharacter::AFPCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	// Camera component
+	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(FName("SpringArmComponent"));
+	SpringArmComponent->TargetArmLength = 0.0f;
+	SpringArmComponent->SetupAttachment(GetCapsuleComponent());
+	
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(FName("CameraComponent"));
-	CameraComponent->SetupAttachment(GetCapsuleComponent());
 	CameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 70.0f));
 	CameraComponent->bUsePawnControlRotation = true;
+	CameraComponent->SetupAttachment(SpringArmComponent);
 
 	// Other settings
 	GetCharacterMovement()->MaxWalkSpeed = 300.0f;
