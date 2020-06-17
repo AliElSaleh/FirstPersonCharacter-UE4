@@ -1,8 +1,8 @@
 {
 	"FileVersion": 3,
 	"Version": 0,
-	"VersionName": "1.2",
-	"FriendlyName": "FirstPersonCharacter",
+	"VersionName": "1.2.2",
+	"FriendlyName": "First Person Character",
 	"Description": "A basic first person character controller with head-bobbing and custom footstep sounds.",
 	"Category": "Characters",
 	"CreatedBy": "Ali El Saleh",

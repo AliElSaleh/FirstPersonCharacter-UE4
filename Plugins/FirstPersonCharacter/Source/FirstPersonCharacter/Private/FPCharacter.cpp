@@ -48,6 +48,13 @@ void AFPCharacter::BeginPlay()
 	// Movement setup
 	GetCharacterMovement()->MaxWalkSpeed = Movement.WalkSpeed;
 	GetCharacterMovement()->JumpZVelocity = Movement.JumpVelocity;
+	
+	APlayerCameraManager* CameraManager = UGameplayStatics::GetPlayerCameraManager(this, 0);
+	if (CameraManager)
+	{
+		CameraManager->ViewPitchMin = Camera.MinPitch;
+		CameraManager->ViewPitchMax = Camera.MaxPitch;
+	}
 
 	// Initialization
 	OriginalCameraLocation = CameraComponent->GetRelativeLocation();
@@ -412,4 +419,14 @@ void AFPCharacter::ResetToDefaultInputBindings()
 
 	// Update in Project Settings -> Engine -> Input
 	Input->ForceRebuildKeymaps();
+}
+
+void AFPCharacter::AddControllerYawInput(const float Value)
+{
+	return Super::AddControllerYawInput(Value * Camera.SensitivityX * GetWorld()->GetDeltaSeconds());
+}
+
+void AFPCharacter::AddControllerPitchInput(const float Value)
+{
+	Super::AddControllerPitchInput(Value * Camera.SensitivityY * GetWorld()->GetDeltaSeconds());
 }
