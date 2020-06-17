@@ -1,7 +1,7 @@
 {
 	"FileVersion": 3,
 	"Version": 0,
-	"VersionName": "1.2.2",
+	"VersionName": "1.2.3",
 	"FriendlyName": "First Person Character",
 	"Description": "A basic first person character controller with head-bobbing and custom footstep sounds.",
 	"Category": "Characters",
