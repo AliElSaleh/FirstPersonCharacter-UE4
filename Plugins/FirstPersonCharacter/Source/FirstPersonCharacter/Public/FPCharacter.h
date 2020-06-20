@@ -124,10 +124,10 @@ protected:
 	UFUNCTION()
 		void StopRunning();
 
-	UPROPERTY(VisibleDefaultsOnly)
+	UPROPERTY(VisibleDefaultsOnly, Category = "Components")
         class USpringArmComponent* SpringArmComponent;
 	
-	UPROPERTY(VisibleDefaultsOnly)
+	UPROPERTY(VisibleDefaultsOnly, Category = "Components")
 		class UCameraComponent* CameraComponent;
 	
 	UPROPERTY(EditInstanceOnly, Category = "First Person Settings", meta = (ToolTip = "Enable this setting if you want to change the keys for specific action or axis mappings. Go to Project Settings -> Engine -> Input to update your inputs."))
