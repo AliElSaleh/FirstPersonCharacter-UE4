@@ -32,11 +32,10 @@ struct FFootstepSettings
 	UPROPERTY(EditInstanceOnly, Category = "Footstep", meta = (ToolTip = "Enable/Disable the ability to play footsteps?"))
 		bool bEnableFootsteps = true;
 
-	UPROPERTY(EditInstanceOnly, Category = "Footstep", meta = (EditCondition = "bEnableFootsteps", ToolTip = "How many units should the character travel unitl we play the next footstep sound? (Distance between footsteps) Lower=More Frequently, Higher=Less Frequently"))
-		float Stride = 160.0f;
-
 	UPROPERTY(EditInstanceOnly, Category = "Footstep", meta = (EditCondition = "bEnableFootsteps", ToolTip = "An array of footstep data assets to play depending on the material the character is moving on"))
 		TArray<class UFootstepData*> Mappings;
+
+	float CurrentStride = 160.0f;
 };
 
 USTRUCT()
@@ -149,6 +148,8 @@ protected:
 
 private:
 	APlayerController* PlayerController;
+
+	UFootstepData* CurrentFootstepMapping;
 	
 	// Footstep variables
 	FVector LastFootstepLocation;
@@ -161,6 +162,7 @@ private:
 
 	bool bCanUnCrouch{};
 	bool bIsCrouching{};
+	bool bIsRunning{};
 
 	TArray<FInputActionKeyMapping> ActionMappings;
 	TArray<FInputAxisKeyMapping> AxisMappings;

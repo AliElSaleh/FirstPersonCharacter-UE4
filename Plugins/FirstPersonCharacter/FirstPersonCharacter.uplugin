@@ -10,7 +10,7 @@
 	"DocsURL": "http://alielsaleh.com/tools/UE4-Plugins/FPCharacter-Plugin/",
 	"MarketplaceURL": "https://www.unrealengine.com/marketplace/en-US/slug/first-person-character-controller-c",
 	"SupportURL": "http://alielsaleh.com/tools/UE4-Plugins/FPCharacter-Plugin/",
-	"EngineVersion": "4.24.0",
+	"EngineVersion": "4.25.0",
 	"CanContainContent": false,
 	"IsBetaVersion": false,
 	"IsExperimentalVersion": false,

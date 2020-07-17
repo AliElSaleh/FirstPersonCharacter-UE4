@@ -142,8 +142,7 @@ void AFPCharacter::StartCrouch()
 	{
 		bIsCrouching = !bIsCrouching;
 		
-		GetCharacterMovement()->MaxWalkSpeed = bIsCrouching ? Movement.CrouchSpeed :Movement.WalkSpeed;
-		FootstepSettings.Stride = bIsCrouching ? 100.0f : 160.0f;
+		GetCharacterMovement()->MaxWalkSpeed = bIsCrouching ? Movement.CrouchSpeed : Movement.WalkSpeed;
 	}
 }
 
@@ -155,7 +154,6 @@ void AFPCharacter::StopCrouching()
 		GetCharacterMovement()->MaxWalkSpeed = Movement.WalkSpeed;
 		
 		bIsCrouching = false;
-		FootstepSettings.Stride = 160.0f;
 	}
 }
 
@@ -191,13 +189,15 @@ void AFPCharacter::MoveForward(const float AxisValue)
 			}
 
 			// Is it time to play a footstep sound?
-			if (GetCharacterMovement()->IsMovingOnGround() && TravelDistance > FootstepSettings.Stride)
+			if (GetCharacterMovement()->IsMovingOnGround() && TravelDistance > FootstepSettings.CurrentStride)
 			{
 				PlayFootstepSound();
 				TravelDistance = 0;
 			}
 		}
 	}
+
+	UE_LOG(LogTemp, Warning, TEXT("FootstepSettings.CurrentStride: %f"), FootstepSettings.CurrentStride)
 }
 
 void AFPCharacter::MoveRight(const float AxisValue)
@@ -218,7 +218,8 @@ void AFPCharacter::Run()
 	if (!bIsCrouching)
 	{
 		GetCharacterMovement()->MaxWalkSpeed = Movement.RunSpeed;
-		FootstepSettings.Stride = 200.0f;
+
+		bIsRunning = true;
 	}
 }
 
@@ -227,7 +228,8 @@ void AFPCharacter::StopRunning()
 	if (!bIsCrouching)
 	{
 		GetCharacterMovement()->MaxWalkSpeed = Movement.WalkSpeed;
-		FootstepSettings.Stride = 160.0f;
+
+		bIsRunning = false;
 	}
 }
 
@@ -323,7 +325,11 @@ USoundBase* AFPCharacter::GetFootstepSound(TWeakObjectPtr<UPhysicalMaterial>* Su
 	for (auto FootstepMapping : FootstepSettings.Mappings)
 	{
 		if (FootstepMapping && FootstepMapping->GetPhysicalMaterial() == Surface->Get())
+		{
+			CurrentFootstepMapping = FootstepMapping;
+			FootstepSettings.CurrentStride = bIsCrouching ? FootstepMapping->GetFootstepStride_Crouch() : bIsRunning ? FootstepMapping->GetFootstepStride_Run() : FootstepMapping->GetFootstepStride_Walk();
 			return FootstepMapping->GetFootstepSounds()[FMath::RandRange(0, FootstepMapping->GetFootstepSounds().Num() - 1)];
+		}
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("No footstep sound"))
