@@ -33,7 +33,7 @@ struct FFootstepSettings
 		bool bEnableFootsteps = true;
 
 	UPROPERTY(EditInstanceOnly, Category = "Footstep", meta = (EditCondition = "bEnableFootsteps", ToolTip = "An array of footstep data assets to play depending on the material the character is moving on"))
-		TArray<class UFootstepData*> Mappings;
+		TArray<class UFirstPersonFootstepData*> Mappings;
 
 	float CurrentStride = 160.0f;
 };
@@ -149,7 +149,7 @@ protected:
 private:
 	APlayerController* PlayerController;
 
-	UFootstepData* CurrentFootstepMapping;
+	UFirstPersonFootstepData* CurrentFootstepMapping;
 	
 	// Footstep variables
 	FVector LastFootstepLocation;

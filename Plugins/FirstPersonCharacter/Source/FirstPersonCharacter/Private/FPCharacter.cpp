@@ -1,7 +1,7 @@
 // Copyright Ali El Saleh, 2020
 
 #include "FPCharacter.h"
-#include "FootstepData.h"
+#include "FirstPersonFootstepData.h"
 
 #include "Components/InputComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -196,8 +196,6 @@ void AFPCharacter::MoveForward(const float AxisValue)
 			}
 		}
 	}
-
-	UE_LOG(LogTemp, Warning, TEXT("FootstepSettings.CurrentStride: %f"), FootstepSettings.CurrentStride)
 }
 
 void AFPCharacter::MoveRight(const float AxisValue)

@@ -1,16 +1,16 @@
-// Copyright Ali El Saleh, 2019
+// Copyright Ali El Saleh, 2020
 
 #pragma once
 
 #include "Engine/DataAsset.h"
 #include "Sound/SoundBase.h"
-#include "FootstepData.generated.h"
+#include "FirstPersonFootstepData.generated.h"
 
 /**
  * Stores an array of sounds and a reference to a PhysicalMaterial
  */
 UCLASS(BlueprintType)
-class FIRSTPERSONCHARACTER_API UFootstepData : public UPrimaryDataAsset
+class FIRSTPERSONCHARACTER_API UFirstPersonFootstepData : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 
