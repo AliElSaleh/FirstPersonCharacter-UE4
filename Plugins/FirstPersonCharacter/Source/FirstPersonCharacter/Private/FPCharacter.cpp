@@ -17,6 +17,8 @@
 
 #include "Sound/SoundBase.h"
 
+#include "GameplayCameras/Public/MatineeCameraShake.h"
+
 AFPCharacter::AFPCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -111,7 +113,7 @@ void AFPCharacter::Jump()
 		Super::Jump();
 
 		// Play jump camera shake
-		PlayerController->ClientPlayCameraShake(CameraShakes.JumpShake);
+		PlayerController->ClientStartCameraShake(CameraShakes.JumpShake);
 	}
 }
 
@@ -122,7 +124,7 @@ void AFPCharacter::Landed(const FHitResult& Hit)
 		Super::Landed(Hit);
 
 		// Play jump camera shake
-		PlayerController->ClientPlayCameraShake(CameraShakes.JumpShake, 3.0f);
+		PlayerController->ClientStartCameraShake(CameraShakes.JumpShake, 3.0f);
 
 		if (FootstepSettings.bEnableFootsteps)
 			PlayFootstepSound();
@@ -273,14 +275,14 @@ void AFPCharacter::UpdateCameraShake()
 	{
 		// Shake camera (Walking shake)
 		if (GetVelocity().Size() > 0 && CanJump())
-			PlayerController->ClientPlayCameraShake(CameraShakes.WalkShake, 2.0f);
+			PlayerController->ClientStartCameraShake(CameraShakes.WalkShake, 2.0f);
 		// Shake camera (breathing shake)
 		else
-			PlayerController->ClientPlayCameraShake(CameraShakes.IdleShake, 1.0f);
+			PlayerController->ClientStartCameraShake(CameraShakes.IdleShake, 1.0f);
 		
 		// Shake camera (Run shake)
 		if (GetVelocity().Size() > 0 && GetCharacterMovement()->MaxWalkSpeed >= Movement.RunSpeed && CanJump())
-			PlayerController->ClientPlayCameraShake(CameraShakes.RunShake, 1.0f);
+			PlayerController->ClientStartCameraShake(CameraShakes.RunShake, 1.0f);
 	}
 }
 
