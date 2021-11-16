@@ -9,10 +9,25 @@
 
 #include "FPCharacter.generated.h"
 
+UENUM()
+enum class ECrouchPhase : uint8
+{
+	Standing,
+	InTransition,
+	Crouching
+};
+
+UENUM()
+enum class EPlayerActionType : uint8
+{
+	Hold,
+	Toggle
+};
+
 USTRUCT()
 struct FCameraShakes
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditInstanceOnly, meta = (ToolTip = "A camera shake to play while in an idle state"), Category = "Shakes")
 		TSubclassOf<class UMatineeCameraShake> IdleShake;
@@ -27,7 +42,7 @@ struct FCameraShakes
 USTRUCT()
 struct FFootstepSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditInstanceOnly, Category = "Footstep", meta = (ToolTip = "Enable/Disable the ability to play footsteps?"))
 		bool bEnableFootsteps = true;
@@ -58,8 +73,11 @@ struct FFirstPersonMovementSettings
 	UPROPERTY(EditInstanceOnly, Category = "Movement", meta = (ClampMin=1.0f, ClampMax=1000.0f, ToolTip = "How long does it take to enter the crouch stance?"))
 		float StandToCrouchTransitionSpeed = 10.0f;
 
+	UPROPERTY(EditInstanceOnly, Category = "Movement", meta = (ClampMin=0.0f, ClampMax=2.0f))
+	float BlockTestOffset{ 0.0f };
+
 	UPROPERTY(EditInstanceOnly, Category = "Movement", meta = (ToolTip = "Enable/Disable the ability to toggle crouch when the crouch key is pressed?"))
-		bool bToggleToCrouch = false;
+	EPlayerActionType CrouchActionType{ EPlayerActionType::Hold };
 };
 
 USTRUCT()
@@ -160,8 +178,8 @@ private:
 	float OriginalCapsuleHalfHeight{};
 	FVector OriginalCameraLocation; // Relative
 
-	bool bCanUnCrouch{};
-	bool bIsCrouching{};
+	ECrouchPhase CrouchPhase;
+	bool bWantsToCrouch{};
 	bool bIsRunning{};
 
 	TArray<FInputActionKeyMapping> ActionMappings;
