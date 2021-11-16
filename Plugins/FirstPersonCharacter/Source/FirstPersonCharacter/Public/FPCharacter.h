@@ -130,6 +130,8 @@ protected:
 	void PlayFootstepSound();
 	USoundBase* GetFootstepSound(TWeakObjectPtr<UPhysicalMaterial>* Surface);
 
+	void UpdateWalkingSpeed();
+
 	void UpdateCrouch(float DeltaTime);
 	bool IsBlockedInCrouchStance();
 	void UpdateCameraShake();
@@ -175,13 +177,18 @@ private:
 	FFindFloorResult FloorResult;
 	float TravelDistance = 0.0f;
 
+	// Crouching
 	float OriginalCapsuleHalfHeight{};
 	FVector OriginalCameraLocation; // Relative
 
 	ECrouchPhase CrouchPhase;
 	bool bWantsToCrouch{};
-	bool bIsRunning{};
+	bool bWantsToRun{};
 
+	// Walking/Sprinting
+	float CurrentWalkSpeed;
+
+	// Input
 	TArray<FInputActionKeyMapping> ActionMappings;
 	TArray<FInputAxisKeyMapping> AxisMappings;
 };

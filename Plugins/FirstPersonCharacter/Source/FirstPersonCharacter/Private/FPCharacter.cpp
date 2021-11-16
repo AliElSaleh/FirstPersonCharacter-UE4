@@ -52,7 +52,8 @@ void AFPCharacter::BeginPlay()
 	Input = const_cast<UInputSettings*>(GetDefault<UInputSettings>());
 
 	// Movement setup
-	GetCharacterMovement()->MaxWalkSpeed = Movement.WalkSpeed;
+	CurrentWalkSpeed = Movement.WalkSpeed;
+	GetCharacterMovement()->MaxWalkSpeed = CurrentWalkSpeed;
 	GetCharacterMovement()->JumpZVelocity = Movement.JumpVelocity;
 	
 	APlayerCameraManager* CameraManager = UGameplayStatics::GetPlayerCameraManager(this, 0);
@@ -82,6 +83,7 @@ void AFPCharacter::Tick(const float DeltaTime)
 	UpdateCameraShake();
 
 	UpdateCrouch(DeltaTime);
+	UpdateWalkingSpeed();
 }
 
 void AFPCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -230,21 +232,20 @@ void AFPCharacter::MoveRight(const float AxisValue)
 
 void AFPCharacter::Run()
 {
-	if (CrouchPhase == ECrouchPhase::Standing)
-	{
-		GetCharacterMovement()->MaxWalkSpeed = Movement.RunSpeed;
-
-		bIsRunning = true;
-	}
+	bWantsToRun = true;
 }
 
 void AFPCharacter::StopRunning()
 {
+	bWantsToRun = false;
+}
+
+void AFPCharacter::UpdateWalkingSpeed()
+{
 	if (CrouchPhase == ECrouchPhase::Standing)
 	{
-		GetCharacterMovement()->MaxWalkSpeed = Movement.WalkSpeed;
-
-		bIsRunning = false;
+		CurrentWalkSpeed = bWantsToRun ? Movement.RunSpeed : Movement.WalkSpeed;
+		GetCharacterMovement()->MaxWalkSpeed = CurrentWalkSpeed;
 	}
 }
 
@@ -255,12 +256,10 @@ void AFPCharacter::UpdateCrouch(const float DeltaTime)
 		const float ErrorMargin = 2.0f;
 		if (bWantsToCrouch)
 		{
-			// Set walking speed to crouched speed
-			GetCharacterMovement()->MaxWalkSpeed = Movement.CrouchSpeed;
-
 			// Smoothly move camera to target location and smoothly decrease the capsule height to fit through small openings
 			const FVector NewLocation = FMath::Lerp(CameraComponent->GetRelativeLocation(), FVector(0.0f, 0.0f, 30.0f), Movement.StandToCrouchTransitionSpeed * DeltaTime);
 			const float NewHalfHeight = FMath::Lerp(GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), OriginalCapsuleHalfHeight/2.0f, Movement.StandToCrouchTransitionSpeed * DeltaTime);
+			const float NewWalkSpeed = FMath::Lerp(GetCharacterMovement()->MaxWalkSpeed, Movement.CrouchSpeed, Movement.StandToCrouchTransitionSpeed * DeltaTime);
 			
 
 			// Change CrouchPhase when we reach the target
@@ -268,12 +267,14 @@ void AFPCharacter::UpdateCrouch(const float DeltaTime)
 			{
 				CameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 30.0f));
 				GetCapsuleComponent()->SetCapsuleHalfHeight(OriginalCapsuleHalfHeight / 2.0f);
+				GetCharacterMovement()->MaxWalkSpeed = Movement.CrouchSpeed;
 				CrouchPhase = ECrouchPhase::Crouching;
 			}
 			else
 			{
 				CameraComponent->SetRelativeLocation(NewLocation);
 				GetCapsuleComponent()->SetCapsuleHalfHeight(NewHalfHeight);
+				GetCharacterMovement()->MaxWalkSpeed = NewWalkSpeed;
 			}
 		}
 		else if (!((Movement.CrouchActionType == EPlayerActionType::Hold) && IsBlockedInCrouchStance()))
@@ -281,6 +282,7 @@ void AFPCharacter::UpdateCrouch(const float DeltaTime)
 			// Smoothly move camera back to original location and smoothly increase the capsule height to the original height
 			const FVector NewLocation = FMath::Lerp(CameraComponent->GetRelativeLocation(), OriginalCameraLocation, Movement.StandToCrouchTransitionSpeed * DeltaTime);
 			const float NewHalfHeight = FMath::Lerp(GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), OriginalCapsuleHalfHeight, Movement.StandToCrouchTransitionSpeed * DeltaTime);
+			const float NewWalkSpeed = FMath::Lerp(GetCharacterMovement()->MaxWalkSpeed, CurrentWalkSpeed, Movement.StandToCrouchTransitionSpeed * DeltaTime);
 
 			// Change CrouchPhase when we reach the target
 			if (FMath::IsNearlyEqual(NewHalfHeight, OriginalCapsuleHalfHeight, ErrorMargin))
@@ -288,12 +290,13 @@ void AFPCharacter::UpdateCrouch(const float DeltaTime)
 				CameraComponent->SetRelativeLocation(OriginalCameraLocation);
 				GetCapsuleComponent()->SetCapsuleHalfHeight(OriginalCapsuleHalfHeight);
 				CrouchPhase = ECrouchPhase::Standing;
-				GetCharacterMovement()->MaxWalkSpeed = Movement.WalkSpeed;
+				GetCharacterMovement()->MaxWalkSpeed = CurrentWalkSpeed;
 			}
 			else
 			{
 				CameraComponent->SetRelativeLocation(NewLocation);
 				GetCapsuleComponent()->SetCapsuleHalfHeight(NewHalfHeight);
+				GetCharacterMovement()->MaxWalkSpeed = NewWalkSpeed;
 			}
 		}
 	}
@@ -398,7 +401,7 @@ USoundBase* AFPCharacter::GetFootstepSound(TWeakObjectPtr<UPhysicalMaterial>* Su
 		if (FootstepMapping && FootstepMapping->GetPhysicalMaterial() == Surface->Get())
 		{
 			CurrentFootstepMapping = FootstepMapping;
-			FootstepSettings.CurrentStride = (CrouchPhase != ECrouchPhase::Standing) ? FootstepMapping->GetFootstepStride_Crouch() : bIsRunning ? FootstepMapping->GetFootstepStride_Run() : FootstepMapping->GetFootstepStride_Walk();
+			FootstepSettings.CurrentStride = (CrouchPhase != ECrouchPhase::Standing) ? FootstepMapping->GetFootstepStride_Crouch() : bWantsToRun ? FootstepMapping->GetFootstepStride_Run() : FootstepMapping->GetFootstepStride_Walk();
 			return FootstepMapping->GetFootstepSounds()[FMath::RandRange(0, FootstepMapping->GetFootstepSounds().Num() - 1)];
 		}
 	}
