@@ -41,7 +41,7 @@ AFPCharacter::AFPCharacter()
 	AutoPossessPlayer = EAutoReceiveInput::Player0;
 	AutoReceiveInput = EAutoReceiveInput::Player0;
 
-	bCanUnCrouch = true;
+	CrouchPhase = ECrouchPhase::Standing;
 }
 
 void AFPCharacter::BeginPlay()
@@ -52,7 +52,8 @@ void AFPCharacter::BeginPlay()
 	Input = const_cast<UInputSettings*>(GetDefault<UInputSettings>());
 
 	// Movement setup
-	GetCharacterMovement()->MaxWalkSpeed = Movement.WalkSpeed;
+	CurrentWalkSpeed = Movement.WalkSpeed;
+	GetCharacterMovement()->MaxWalkSpeed = CurrentWalkSpeed;
 	GetCharacterMovement()->JumpZVelocity = Movement.JumpVelocity;
 	
 	APlayerCameraManager* CameraManager = UGameplayStatics::GetPlayerCameraManager(this, 0);
@@ -65,7 +66,6 @@ void AFPCharacter::BeginPlay()
 	// Initialization
 	OriginalCameraLocation = CameraComponent->GetRelativeLocation();
 	OriginalCapsuleHalfHeight = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-	bCanUnCrouch = true;
 
 	// Footstep setup
 	LastLocation = GetActorLocation();
@@ -83,6 +83,7 @@ void AFPCharacter::Tick(const float DeltaTime)
 	UpdateCameraShake();
 
 	UpdateCrouch(DeltaTime);
+	UpdateWalkingSpeed();
 }
 
 void AFPCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -108,7 +109,7 @@ void AFPCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 void AFPCharacter::Jump()
 {
-	if (!bIsCrouching)
+	if (CrouchPhase == ECrouchPhase::Standing)
 	{
 		Super::Jump();
 
@@ -119,7 +120,7 @@ void AFPCharacter::Jump()
 
 void AFPCharacter::Landed(const FHitResult& Hit)
 {
-	if (!bIsCrouching)
+	if (CrouchPhase == ECrouchPhase::Standing)
 	{
 		Super::Landed(Hit);
 
@@ -140,22 +141,38 @@ void AFPCharacter::PossessedBy(AController* NewController)
 
 void AFPCharacter::StartCrouch()
 {
-	if (GetCharacterMovement()->IsMovingOnGround() && bCanUnCrouch)
+	switch (Movement.CrouchActionType)
 	{
-		bIsCrouching = !bIsCrouching;
+		case EPlayerActionType::Hold:
+		{
+			bWantsToCrouch = true;
+			CrouchPhase = ECrouchPhase::InTransition;
+			break;
+		}
 		
-		GetCharacterMovement()->MaxWalkSpeed = bIsCrouching ? Movement.CrouchSpeed : Movement.WalkSpeed;
+		case EPlayerActionType::Toggle:
+		{
+			if (bWantsToCrouch && !IsBlockedInCrouchStance())
+			{
+				bWantsToCrouch = false;
+				CrouchPhase = ECrouchPhase::InTransition;
+			}
+			else if(!bWantsToCrouch)
+			{
+				bWantsToCrouch = true;
+				CrouchPhase = ECrouchPhase::InTransition;
+			}
+			break;
+		}
 	}
 }
 
 void AFPCharacter::StopCrouching()
 {
-	// Reset stance when crouch is not in toggle mode
-	if (!Movement.bToggleToCrouch && bCanUnCrouch)
+	if (Movement.CrouchActionType == EPlayerActionType::Hold)
 	{
-		GetCharacterMovement()->MaxWalkSpeed = Movement.WalkSpeed;
-		
-		bIsCrouching = false;
+		bWantsToCrouch = false;
+		CrouchPhase = ECrouchPhase::InTransition;
 	}
 }
 
@@ -215,58 +232,115 @@ void AFPCharacter::MoveRight(const float AxisValue)
 
 void AFPCharacter::Run()
 {
-	if (!bIsCrouching)
-	{
-		GetCharacterMovement()->MaxWalkSpeed = Movement.RunSpeed;
-
-		bIsRunning = true;
-	}
+	bWantsToRun = true;
 }
 
 void AFPCharacter::StopRunning()
 {
-	if (!bIsCrouching)
-	{
-		GetCharacterMovement()->MaxWalkSpeed = Movement.WalkSpeed;
+	bWantsToRun = false;
+}
 
-		bIsRunning = false;
+void AFPCharacter::UpdateWalkingSpeed()
+{
+	if (CrouchPhase == ECrouchPhase::Standing)
+	{
+		CurrentWalkSpeed = bWantsToRun ? Movement.RunSpeed : Movement.WalkSpeed;
+		GetCharacterMovement()->MaxWalkSpeed = CurrentWalkSpeed;
 	}
 }
 
 void AFPCharacter::UpdateCrouch(const float DeltaTime)
 {
-	if (bIsCrouching)
+	if (CrouchPhase == ECrouchPhase::InTransition)
 	{
-		// Smoothly move camera to target location and smoothly decrease the capsule height to fit through small openings
-		const FVector NewLocation = FMath::Lerp(CameraComponent->GetRelativeLocation(), FVector(0.0f, 0.0f, 30.0f), Movement.StandToCrouchTransitionSpeed * DeltaTime);
-		const float NewHalfHeight = FMath::Lerp(GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), OriginalCapsuleHalfHeight/2.0f, Movement.StandToCrouchTransitionSpeed * DeltaTime);
-		
-		CameraComponent->SetRelativeLocation(NewLocation);
-		GetCapsuleComponent()->SetCapsuleHalfHeight(NewHalfHeight);
+		const float ErrorMargin = 2.0f;
+		if (bWantsToCrouch)
+		{
+			// Smoothly move camera to target location and smoothly decrease the capsule height to fit through small openings
+			const FVector NewLocation = FMath::Lerp(CameraComponent->GetRelativeLocation(), FVector(0.0f, 0.0f, 30.0f), Movement.StandToCrouchTransitionSpeed * DeltaTime);
+			const float NewHalfHeight = FMath::Lerp(GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), OriginalCapsuleHalfHeight/2.0f, Movement.StandToCrouchTransitionSpeed * DeltaTime);
+			const float NewWalkSpeed = FMath::Lerp(GetCharacterMovement()->MaxWalkSpeed, Movement.CrouchSpeed, Movement.StandToCrouchTransitionSpeed * DeltaTime);
+			
 
-		if (IsBlockedInCrouchStance())
-			bCanUnCrouch = false;
-		else
-			bCanUnCrouch = true;
-	}
-	else
-	{
-		// Smoothly move camera back to original location and smoothly increase the capsule height to the original height
-		const FVector NewLocation = FMath::Lerp(CameraComponent->GetRelativeLocation(), OriginalCameraLocation, Movement.StandToCrouchTransitionSpeed * DeltaTime);
-		const float NewHalfHeight = FMath::Lerp(GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), OriginalCapsuleHalfHeight, Movement.StandToCrouchTransitionSpeed * DeltaTime);
+			// Change CrouchPhase when we reach the target
+			if (FMath::IsNearlyEqual(NewHalfHeight, OriginalCapsuleHalfHeight / 2.0f, ErrorMargin))
+			{
+				CameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 30.0f));
+				GetCapsuleComponent()->SetCapsuleHalfHeight(OriginalCapsuleHalfHeight / 2.0f);
+				GetCharacterMovement()->MaxWalkSpeed = Movement.CrouchSpeed;
+				CrouchPhase = ECrouchPhase::Crouching;
+			}
+			else
+			{
+				CameraComponent->SetRelativeLocation(NewLocation);
+				GetCapsuleComponent()->SetCapsuleHalfHeight(NewHalfHeight);
+				GetCharacterMovement()->MaxWalkSpeed = NewWalkSpeed;
+			}
+		}
+		else if (!((Movement.CrouchActionType == EPlayerActionType::Hold) && IsBlockedInCrouchStance()))
+		{
+			// Smoothly move camera back to original location and smoothly increase the capsule height to the original height
+			const FVector NewLocation = FMath::Lerp(CameraComponent->GetRelativeLocation(), OriginalCameraLocation, Movement.StandToCrouchTransitionSpeed * DeltaTime);
+			const float NewHalfHeight = FMath::Lerp(GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), OriginalCapsuleHalfHeight, Movement.StandToCrouchTransitionSpeed * DeltaTime);
+			const float NewWalkSpeed = FMath::Lerp(GetCharacterMovement()->MaxWalkSpeed, CurrentWalkSpeed, Movement.StandToCrouchTransitionSpeed * DeltaTime);
 
-		CameraComponent->SetRelativeLocation(NewLocation);
-		GetCapsuleComponent()->SetCapsuleHalfHeight(NewHalfHeight);
+			// Change CrouchPhase when we reach the target
+			if (FMath::IsNearlyEqual(NewHalfHeight, OriginalCapsuleHalfHeight, ErrorMargin))
+			{
+				CameraComponent->SetRelativeLocation(OriginalCameraLocation);
+				GetCapsuleComponent()->SetCapsuleHalfHeight(OriginalCapsuleHalfHeight);
+				CrouchPhase = ECrouchPhase::Standing;
+				GetCharacterMovement()->MaxWalkSpeed = CurrentWalkSpeed;
+			}
+			else
+			{
+				CameraComponent->SetRelativeLocation(NewLocation);
+				GetCapsuleComponent()->SetCapsuleHalfHeight(NewHalfHeight);
+				GetCharacterMovement()->MaxWalkSpeed = NewWalkSpeed;
+			}
+		}
 	}
 }
 
 bool AFPCharacter::IsBlockedInCrouchStance()
 {
-	// Raycast up above character
+	// Cast a sphere abouve the character
+	const FVector StartLocation = GetActorLocation();
+	const float CurrentHalfHeight = GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight_WithoutHemisphere();
+	const float TraceDistance = Movement.CrouchActionType == EPlayerActionType::Hold
+		? CurrentHalfHeight + Movement.BlockTestOffset
+		: OriginalCapsuleHalfHeight;
+	const FVector EndLocation = StartLocation + TraceDistance * GetActorUpVector();
+	const FCollisionShape CollisionSphere
+		= FCollisionShape::MakeSphere(GetCapsuleComponent()->GetUnscaledCapsuleRadius());
+	
 	FHitResult HitResult;
-	const FVector RayLength = FVector(0.0f, 0.0f, 130.0f);
+	FCollisionQueryParams SphereParams(SCENE_QUERY_STAT(CrouchTrace), false, this);
+	FCollisionResponseParams ResponseParams;
+	GetCharacterMovement()->InitCollisionParams(SphereParams, ResponseParams);
 
-	return GetWorld()->LineTraceSingleByChannel(HitResult, GetActorLocation(), GetActorLocation() + RayLength, ECC_Visibility);
+	bool bHasHit = GetWorld()->SweepSingleByChannel(
+		HitResult,
+		StartLocation,
+		EndLocation,
+		FQuat::Identity,
+		ECC_Visibility,
+		CollisionSphere,
+		SphereParams,
+		ResponseParams
+	);
+	
+	if (bHasHit)
+	{
+		// Return true only if the hit actor doesn't simulate physics
+		USceneComponent* HitComponent = HitResult.GetComponent();
+		bool bOtherSimulatesPhysics = HitComponent->IsSimulatingPhysics();
+		return !bOtherSimulatesPhysics;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 void AFPCharacter::UpdateCameraShake()
@@ -304,7 +378,7 @@ void AFPCharacter::PlayFootstepSound()
 	{
 		if (IsValid(GetFootstepSound(&FloorResult.HitResult.PhysMaterial)))
 		{
-			if (bIsCrouching)
+			if (CrouchPhase != ECrouchPhase::Standing)
 				UGameplayStatics::PlaySoundAtLocation(this, GetFootstepSound(&FloorResult.HitResult.PhysMaterial), FloorResult.HitResult.Location, 0.35f);
 			else
 				UGameplayStatics::PlaySoundAtLocation(this, GetFootstepSound(&FloorResult.HitResult.PhysMaterial), FloorResult.HitResult.Location);
@@ -327,7 +401,7 @@ USoundBase* AFPCharacter::GetFootstepSound(TWeakObjectPtr<UPhysicalMaterial>* Su
 		if (FootstepMapping && FootstepMapping->GetPhysicalMaterial() == Surface->Get())
 		{
 			CurrentFootstepMapping = FootstepMapping;
-			FootstepSettings.CurrentStride = bIsCrouching ? FootstepMapping->GetFootstepStride_Crouch() : bIsRunning ? FootstepMapping->GetFootstepStride_Run() : FootstepMapping->GetFootstepStride_Walk();
+			FootstepSettings.CurrentStride = (CrouchPhase != ECrouchPhase::Standing) ? FootstepMapping->GetFootstepStride_Crouch() : bWantsToRun ? FootstepMapping->GetFootstepStride_Run() : FootstepMapping->GetFootstepStride_Walk();
 			return FootstepMapping->GetFootstepSounds()[FMath::RandRange(0, FootstepMapping->GetFootstepSounds().Num() - 1)];
 		}
 	}
